@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Component Preview</title>
+
+  <!-- React 18 -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+  <!-- Babel standalone (transpiles JSX in the browser) -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen p-8">
+
+  <!-- React mounts here -->
+  <div id="root"></div>
+
+  <!-- ============================================================
+       PASTE YOUR JSX COMPONENT BELOW
+       - Define your component as a function named App (or export
+         a default and rename it to App at the bottom).
+       - Use Tailwind classes freely — they're already loaded.
+       - You can use React hooks: useState, useEffect, etc.
+       ============================================================ -->
+  <script type="text/babel">
+
+    function App() {
+      return (
+        <div className="text-gray-800">
+          <h1 className="text-2xl font-bold">Replace me with your component</h1>
+        </div>
+      );
+    }
+
+    // ============================================================
+    // END OF COMPONENT — do not edit below this line
+    // ============================================================
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+
+</body>
+</html>
