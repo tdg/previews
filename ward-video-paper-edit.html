@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ward Video Paper Edit v3</title>
+
+  <!-- React 18 -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+  <!-- Babel standalone (transpiles JSX in the browser) -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body style="margin:0;padding:0;background:#08080c">
+
+  <div id="root"></div>
+
+  <script type="text/babel">
+const { useState, useEffect, useCallback, useRef } = React;
+
+const WARD = {
+  name: "Cokeham",
+  council: "Adur",
+  party: "Labour",
+  partyColor: "#e4003b",
+  slug: "elections/divisions/cokeham",
+  gss: "E05007564",
+  photoCredit: "J. Smith / Geograph",
+  photoLicence: "CC BY-SA 2.0",
+};
+
+const IMPRINT = "Published and promoted by Tom de Grunwald on behalf of Forward Democracy. Registered as Movement Forward Ltd, company no. 11707599 in England & Wales, 100 Church Street, Brighton, BN1 1UJ.";
+
+const PHASES = [
+  { id: "headline", label: "Headline",    ms: 1000, desc: '"How to stop Reform" fades in' },
+  { id: "ward",     label: "+ Ward",      ms: 1200, desc: '"in Cokeham" fades in beneath' },
+  { id: "tactical", label: "+ Tactical",  ms: 2800, desc: '"Your tactical vote is Labour" – headline fades, ward migrates up' },
+  { id: "xlogo",    label: "X logo",      ms: 2000, desc: 'Ward + party shrink to top; big X appears centre' },
+  { id: "url",      label: "URL",         ms: 3000, desc: 'X shrinks to SR brand; URL + full slug + FD logo appear' },
+  { id: "endcard",  label: "End card",    ms: 3000, desc: 'Big X, SR URL, FD logo, photo credit, imprint' },
+];
+
+const TOTAL_MS = PHASES.reduce((a, p) => a + p.ms, 0);
+
+function XMark({ size = 120, color = "#12B6CF" }) {
+  const s = size * 0.25;
+  const e = size * 0.75;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} fill="none">
+      <line x1={s} y1={s} x2={e} y2={e} stroke={color} strokeWidth={size * 0.12} strokeLinecap="round" />
+      <line x1={e} y1={s} x2={s} y2={e} stroke={color} strokeWidth={size * 0.12} strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function App() {
+  const [phase, setPhase] = useState(-1);
+  const [playing, setPlaying] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const startRef = useRef(null);
+  const rafRef = useRef(null);
+
+  const reset = useCallback(() => {
+    setPhase(-1); setPlaying(false); setElapsed(0);
+    startRef.current = null;
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+  }, []);
+
+  const play = useCallback(() => {
+    setPhase(0); setPlaying(true); setElapsed(0);
+    startRef.current = Date.now();
+  }, []);
+
+  useEffect(() => {
+    if (!playing) return;
+    const tick = () => {
+      if (startRef.current) setElapsed(Date.now() - startRef.current);
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [playing]);
+
+  useEffect(() => {
+    if (!playing || phase < 0 || phase >= PHASES.length) return;
+    const timer = setTimeout(() => {
+      if (phase < PHASES.length - 1) setPhase(p => p + 1);
+      else setPlaying(false);
+    }, PHASES[phase].ms);
+    return () => clearTimeout(timer);
+  }, [phase, playing]);
+
+  const at = (idx) => phase >= idx;
+  const P = {};
+  PHASES.forEach((p, i) => { P[p.id] = i; });
+
+  const isEnd = at(P.endcard);
+
+  const wardTop = at(P.xlogo) ? "55px"
+    : at(P.tactical) ? "110px"
+    : "245px";
+  const wardSize = at(P.xlogo) ? "13px"
+    : at(P.tactical) ? "18px"
+    : "34px";
+
+  const partyTop = at(P.xlogo) ? "80px" : "195px";
+  const partySize = at(P.xlogo) ? "16px" : "40px";
+  const partyLabelSize = at(P.xlogo) ? "0px" : "18px";
+  const partyLabelOpacity = at(P.xlogo) ? 0 : 1;
+
+  return (
+    <div style={{
+      minHeight: "100vh",
+      background: "#08080c",
+      display: "flex", flexDirection: "column", alignItems: "center",
+      padding: "16px",
+      fontFamily: "'Space Grotesk', system-ui, sans-serif",
+      color: "#fff",
+    }}>
+      <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+      <div style={{ color: "#555", fontSize: "11px", marginBottom: "12px", letterSpacing: "2px", textTransform: "uppercase" }}>
+        Paper Edit v3 – Ward Video
+      </div>
+
+      {/* ── Phone frame ── */}
+      <div style={{
+        width: "320px", height: "568px",
+        borderRadius: "24px", border: "2px solid #222",
+        overflow: "hidden", position: "relative",
+        background: "#0d0d14",
+        boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
+      }}>
+        {/* BG */}
+        <div style={{
+          position: "absolute", inset: 0,
+          background: isEnd ? "#0a0a10" : "linear-gradient(175deg, #1a2a20 0%, #101820 50%, #0d0d18 100%)",
+          opacity: isEnd ? 1 : 0.5,
+          transition: "all 0.5s ease",
+        }} />
+        {!isEnd && <div style={{
+          position: "absolute", inset: 0,
+          background: "linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.65) 45%, rgba(0,0,0,0.85) 100%)",
+        }} />}
+
+        <div style={{
+          position: "relative", zIndex: 2, height: "100%",
+          display: "flex", flexDirection: "column",
+          padding: "0 24px",
+        }}>
+
+          {/* HEADLINE */}
+          {!isEnd && (
+            <div style={{
+              position: "absolute",
+              top: "170px", left: "24px", right: "24px",
+              opacity: at(P.headline) && !at(P.tactical) ? 1 : 0,
+              transform: at(P.headline) ? "translateY(0)" : "translateY(16px)",
+              transition: "all 0.45s ease",
+            }}>
+              <div style={{ fontSize: "30px", fontWeight: 700, lineHeight: 1.15 }}>
+                How to stop Reform
+              </div>
+            </div>
+          )}
+
+          {/* WARD NAME */}
+          {!isEnd && (
+            <div style={{
+              position: "absolute",
+              left: "24px", right: "24px",
+              top: wardTop,
+              opacity: at(P.ward) ? 1 : 0,
+              transform: at(P.ward) ? "translateY(0)" : "translateY(12px)",
+              transition: "all 0.5s ease",
+              transitionProperty: "opacity, transform, top",
+            }}>
+              <div style={{
+                fontSize: wardSize,
+                fontWeight: 700, lineHeight: 1.15,
+                transition: "font-size 0.45s ease",
+                color: at(P.xlogo) ? "#999" : "#fff",
+              }}>
+                in {WARD.name}
+              </div>
+              {at(P.tactical) && (
+                <div style={{
+                  fontSize: at(P.xlogo) ? "0px" : "12px",
+                  color: "#777", fontWeight: 400,
+                  marginTop: at(P.xlogo) ? "0px" : "3px",
+                  opacity: at(P.xlogo) ? 0 : 0.8,
+                  transition: "all 0.35s ease",
+                  overflow: "hidden",
+                }}>
+                  {WARD.council} Council · 7 May 2026
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* PARTY NAME */}
+          {!isEnd && (
+            <div style={{
+              position: "absolute",
+              left: "24px", right: "24px",
+              top: partyTop,
+              opacity: at(P.tactical) ? 1 : 0,
+              transform: at(P.tactical) ? "translateY(0)" : "translateY(16px)",
+              transition: "all 0.5s ease",
+              transitionProperty: "opacity, transform, top",
+            }}>
+              <div style={{
+                fontSize: partyLabelSize,
+                fontWeight: 400, color: "#bbb", lineHeight: 1.3,
+                opacity: partyLabelOpacity,
+                overflow: "hidden",
+                maxHeight: at(P.xlogo) ? "0px" : "30px",
+                transition: "all 0.4s ease",
+              }}>
+                Your tactical vote is
+              </div>
+              <div style={{
+                fontSize: partySize,
+                fontWeight: 800, lineHeight: 1.05,
+                marginTop: at(P.xlogo) ? "0px" : "6px",
+                color: WARD.partyColor,
+                textShadow: at(P.xlogo) ? "none" : `0 0 40px ${WARD.partyColor}33`,
+                transition: "all 0.45s ease",
+              }}>
+                {WARD.party}
+              </div>
+            </div>
+          )}
+
+          {/* X LOGO */}
+          {!isEnd && at(P.xlogo) && (
+            <div style={{
+              position: "absolute",
+              top: at(P.url) ? "18px" : "50%",
+              left: at(P.url) ? "24px" : "50%",
+              transform: at(P.url) ? "translate(0, 0)" : "translate(-50%, -50%)",
+              transition: "all 0.6s cubic-bezier(0.34, 1.2, 0.64, 1)",
+              display: "flex", alignItems: "center", gap: "8px",
+            }}>
+              <XMark size={at(P.url) ? 28 : 110} />
+              <div style={{
+                opacity: at(P.url) ? 1 : 0,
+                fontSize: "13px", fontWeight: 700, color: "#fff",
+                letterSpacing: "0.3px", whiteSpace: "nowrap",
+                transition: "opacity 0.4s ease 0.15s",
+              }}>
+                StopReformUK
+              </div>
+            </div>
+          )}
+
+          {/* URL */}
+          {!isEnd && at(P.url) && (
+            <div style={{
+              position: "absolute",
+              top: "240px", left: "24px", right: "24px",
+            }}>
+              <div style={{
+                fontSize: "26px", fontWeight: 700, lineHeight: 1.2,
+              }}>
+                StopReformUK.vote/
+              </div>
+              <div style={{
+                fontSize: "12px", fontWeight: 500,
+                color: "#12B6CF",
+                fontFamily: "'Space Grotesk', monospace",
+                marginTop: "8px", lineHeight: 1.4,
+                wordBreak: "break-all",
+                opacity: 0.9,
+              }}>
+                stopreformuk.vote/{WARD.slug}
+              </div>
+            </div>
+          )}
+
+          {/* FD LOGO */}
+          {!isEnd && (
+            <div style={{
+              position: "absolute",
+              bottom: "40px", left: "24px", right: "24px",
+              textAlign: "center",
+              opacity: at(P.url) ? 1 : 0,
+              transition: "opacity 0.5s ease 0.3s",
+            }}>
+              <div style={{
+                fontSize: "12px", fontWeight: 600, color: "#ff77ff",
+                letterSpacing: "1.5px", textTransform: "uppercase",
+              }}>
+                Forward Democracy
+              </div>
+            </div>
+          )}
+
+          {/* END CARD */}
+          {isEnd && (
+            <div style={{
+              position: "absolute", inset: 0,
+              display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center",
+              padding: "40px 28px",
+              opacity: 1,
+              transition: "opacity 0.5s ease",
+            }}>
+              <div style={{ animation: "endX 0.7s cubic-bezier(0.34, 1.56, 0.64, 1)" }}>
+                <XMark size={100} color="#12B6CF" />
+              </div>
+              <div style={{ fontSize: "18px", fontWeight: 700, marginTop: "14px", letterSpacing: "0.5px" }}>
+                StopReformUK.vote
+              </div>
+              <div style={{
+                fontSize: "11px", fontWeight: 600, color: "#ff77ff",
+                letterSpacing: "1.5px", textTransform: "uppercase", marginTop: "24px",
+              }}>
+                Forward Democracy
+              </div>
+              <div style={{ fontSize: "10px", color: "#666", marginTop: "32px", textAlign: "center", lineHeight: 1.5 }}>
+                Photo: {WARD.photoCredit} ({WARD.photoLicence})
+              </div>
+              <div style={{
+                fontSize: "8.5px", color: "#555", marginTop: "12px",
+                textAlign: "center", lineHeight: 1.5, maxWidth: "260px",
+              }}>
+                {IMPRINT}
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
+
+      {/* ── Controls ── */}
+      <div style={{ display: "flex", gap: "12px", marginTop: "20px", alignItems: "center" }}>
+        <button
+          onClick={playing ? reset : play}
+          style={{
+            background: playing ? "#222" : "#12B6CF",
+            color: "#fff", border: "none", borderRadius: "8px",
+            padding: "10px 28px", fontSize: "14px", fontWeight: 600,
+            cursor: "pointer", fontFamily: "'Space Grotesk', sans-serif",
+          }}
+        >
+          {playing ? "Reset" : phase >= 0 ? "▶ Replay" : "▶ Play"}
+        </button>
+        <div style={{ color: "#555", fontSize: "13px", fontFamily: "monospace" }}>
+          {(elapsed / 1000).toFixed(1)}s / {(TOTAL_MS / 1000).toFixed(1)}s
+        </div>
+      </div>
+
+      {/* ── Phase strip ── */}
+      <div style={{ display: "flex", gap: "3px", marginTop: "14px", flexWrap: "wrap", justifyContent: "center" }}>
+        {PHASES.map((p, i) => (
+          <div key={p.id} style={{
+            padding: "3px 8px", borderRadius: "4px",
+            fontSize: "10px", fontWeight: 500,
+            color: phase === i ? "#fff" : phase > i ? "#666" : "#444",
+            background: phase === i ? "#12B6CF22" : "transparent",
+            border: `1px solid ${phase === i ? "#12B6CF55" : "#1a1a1a"}`,
+            fontFamily: "'Space Grotesk', sans-serif",
+          }}>
+            {p.label}
+          </div>
+        ))}
+      </div>
+
+      {/* ── Timing table ── */}
+      <div style={{ marginTop: "20px", width: "340px", fontSize: "11px", fontFamily: "'Space Grotesk', sans-serif" }}>
+        <div style={{ color: "#444", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "8px" }}>
+          Sequence breakdown
+        </div>
+        {PHASES.map((p, i) => (
+          <div key={p.id} style={{
+            display: "flex", gap: "8px", alignItems: "baseline",
+            padding: "4px 0", borderBottom: "1px solid #111",
+            color: phase === i ? "#ccc" : "#444",
+          }}>
+            <span style={{ width: "36px", textAlign: "right", fontFamily: "monospace", fontSize: "10px", flexShrink: 0 }}>
+              {(p.ms / 1000).toFixed(1)}s
+            </span>
+            <span style={{ width: "70px", fontWeight: 600, fontSize: "10px", flexShrink: 0 }}>{p.label}</span>
+            <span style={{ fontSize: "10px", color: phase === i ? "#888" : "#333" }}>{p.desc}</span>
+          </div>
+        ))}
+        <div style={{ display: "flex", gap: "8px", padding: "6px 0 0", color: "#666", fontWeight: 600 }}>
+          <span style={{ width: "36px", textAlign: "right", fontFamily: "monospace", fontSize: "10px" }}>
+            {(TOTAL_MS / 1000).toFixed(1)}s
+          </span>
+          <span style={{ fontSize: "10px" }}>Total</span>
+        </div>
+      </div>
+
+      {/* ── Persistence key ── */}
+      <div style={{
+        marginTop: "20px", width: "340px",
+        fontSize: "10px", color: "#444", lineHeight: 1.7,
+        fontFamily: "'Space Grotesk', sans-serif",
+      }}>
+        <div style={{ color: "#555", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "6px" }}>
+          What persists
+        </div>
+        <div>• "How to stop Reform" — on at 1, <span style={{ color: "#666" }}>off at 3</span></div>
+        <div>• "in {WARD.name}" — on at 2, <strong style={{ color: "#12B6CF" }}>persists</strong> → shrinks to top at 4–5</div>
+        <div>• "{WARD.party}" — on at 3, <strong style={{ color: WARD.partyColor }}>persists</strong> → shrinks to top at 4–5</div>
+        <div>• X logo — big at 4, becomes SR brand mark at 5</div>
+        <div>• URL — on at 5, persists to end card</div>
+        <div>• End card — clears everything; big X, credits, imprint</div>
+      </div>
+
+      <style>{`
+        @keyframes endX {
+          0% { transform: scale(0.2) rotate(-90deg); opacity: 0; }
+          100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+
+</body>
+</html>
