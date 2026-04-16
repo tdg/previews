@@ -14,10 +14,6 @@
 <div id="root"></div>
 <script type="text/babel">
 
-// Gall-Peters projection formulas
-// x = λ * cos(45°) = λ * 0.7071
-// y = sin(φ) / cos(45°) = sin(φ) * 1.4142
-
 const GP = {
   toX: (lon, width) => (lon + 180) / 360 * width,
   toY: (lat, height) => {
@@ -27,594 +23,269 @@ const GP = {
   },
 };
 
-// Simplified country outlines (key vertices only) as [lon, lat] pairs
-// These are rough but recognisable shapes for each target country
-const countries = [
-  {
-    id: "uk",
-    name: "UK",
-    year: "2029",
-    tier: 1,
-    system: "FPTP",
-    seats: 650,
-    problem: "Multi-party fragmentation produces extreme disproportionality. In 2024, Reform UK won 14% of the vote but just 1% of seats. The Greens won 7% but 0.6% of seats. Voters in safe seats – the vast majority – have no meaningful choice.",
-    opportunity: "Swap My Vote's home turf. The platform has operated across multiple UK general elections with a proven model. The fragmented five-to-six party landscape creates ideal conditions: voters trapped in safe seats for Party A can swap with voters in marginals who prefer Party A but face a different tactical imperative.",
-    next: "Due by August 2029. Labour's record majority on a historically low vote share means disproportionality will be a defining issue.",
-    centroid: [-2, 54],
-    labelOffset: [-40, -20],
-    paths: [
-      // Great Britain simplified
-      [[-5.7,50],[-5,50.3],[-4.2,50.4],[-3.5,50.7],[-1.3,50.8],[1.4,51.2],[1.7,52.5],[0.3,52.9],[0,53.5],[-0.5,53.7],[-1.2,54.6],[-1.6,55],[-2,55.8],[-1.8,57.7],[-3,58.5],[-5,58.6],[-5.6,57.6],[-5.2,56.3],[-5.7,56],[-4.5,55.7],[-4.9,54.7],[-3.2,54],[-3.4,53.4],[-4.3,53.2],[-3.1,51.4],[-4.2,51.7],[-4.9,51.6],[-5.2,51.8],[-5.7,50]]
-    ]
-  },
-  {
-    id: "usa",
-    name: "USA",
-    year: "2026/28",
-    tier: 1,
-    system: "FPTP + Electoral College",
-    seats: "435 House + 538 EC",
-    problem: "House elections use FPTP in single-member districts. The presidential Electoral College's winner-take-all-by-state design means millions of votes in safe states are structurally irrelevant. Third-party or independent voters face intense spoiler pressure.",
-    opportunity: "Vote swapping between safe and swing states for the presidential race. A voter in California who prefers a third party can swap with a swing-state voter who shares their strategic interest. US vote-swap sites have faced legal scrutiny but operated in 2000, 2016, and 2020. The 2028 presidential and 2026 midterms both present opportunities.",
-    next: "Midterms Nov 2026 (House); Presidential Nov 2028.",
-    centroid: [-98, 40],
-    labelOffset: [0, -15],
-    paths: [
-      // Continental US simplified
-      [[-124,48.5],[-123,46],[-124,43],[-120,39],[-117,33],[-114,32.5],[-111,31.5],[-108,31.8],[-104,29.5],[-97,26],[-94,29.5],[-90,29],[-89,30],[-85,30],[-82,25],[-80,25],[-80,31],[-75,35],[-73,40],[-70,41.5],[-67,45],[-67,47.5],[-82,42],[-84,46.5],[-88,48],[-90,48],[-95,49],[-105,49],[-120,49],[-124,48.5]]
-    ]
-  },
-  {
-    id: "india",
-    name: "INDIA",
-    year: "2029",
-    tier: 1,
-    system: "FPTP",
-    seats: 543,
-    problem: "The world's largest FPTP exercise. With dozens of parties competing across 543 constituencies, vote-splitting is endemic. Winning candidates routinely take seats with 30–35% of the vote. Coalition arithmetic at the national level is shaped by thousands of local tactical miscalculations.",
-    opportunity: "Immense scale. India's multi-party, multi-regional landscape means vote swapping could operate at both national and state levels. The challenge is linguistic and technological diversity, but India's mobile-first digital infrastructure is strong. State assembly elections in 2026–28 could serve as testing grounds.",
-    next: "Lok Sabha elections expected by April/May 2029.",
-    centroid: [79, 22],
-    labelOffset: [0, 0],
-    paths: [
-      [[68,23.5],[68.5,26],[70,28],[72,32],[74,34.5],[76,34.5],[78,35.5],[80,33],[82,28],[84,28.5],[87,28],[88,26.5],[89,26.2],[92,26],[97,28],[97,25],[93,20],[87,22],[82,16],[80,13],[77,8],[76,11],[74,12],[72,20],[68,23.5]]
-    ]
-  },
-  {
-    id: "canada",
-    name: "CANADA",
-    year: "≤2029",
-    tier: 1,
-    system: "FPTP",
-    seats: 343,
-    problem: "Three-to-four party system consistently distorted by FPTP. The Bloc Québécois wins dozens of seats on a regional vote share, while the NDP's nationally distributed support converts poorly. The Liberals won a majority government in 2025 on ~39% of the vote.",
-    opportunity: "Strong digital infrastructure, highly engaged electorate, active electoral reform movement. Strategic voting sites already operate (e.g. VoteSmart, LeadNow). A swap platform could formalise what Canadian progressive voters already attempt informally. The Carney majority may delay the next election to 2029, but a minority parliament could trigger one earlier.",
-    next: "Fixed date 15 Oct 2029; earlier election possible.",
-    centroid: [-96, 60],
-    labelOffset: [0, -10],
-    paths: [
-      // Canada simplified southern border + rough coastline
-      [[-141,60],[-141,69],[-130,72],[-120,75],[-90,75],[-80,78],[-65,73],[-60,70],[-55,52],[-60,47],[-66,44],[-67,47.5],[-82,42],[-84,46.5],[-88,48],[-95,49],[-120,49],[-124,48.5],[-130,55],[-141,60]]
-    ]
-  },
-  {
-    id: "france",
-    name: "FRANCE",
-    year: "≤2029",
-    tier: 2,
-    system: "Two-round",
-    seats: 577,
-    problem: "Single-member constituencies with a two-round system. The first round is effectively a multi-party FPTP race to qualify for the runoff. In 2024, tactical withdrawal (désistement républicain) was deployed on a massive scale to block the Rassemblement National – but it relied on informal party coordination, not voter agency.",
-    opportunity: "A swap platform could empower voters in the first round: 'I'll vote for your candidate in my constituency if you vote for mine in yours.' The French context demands a different model from the UK – more about ensuring the right candidates reach the second round. High political engagement and a strong tradition of tactical coordination make this fertile ground.",
-    next: "Due by 2029; could be earlier given political instability.",
-    centroid: [2.5, 46.5],
-    labelOffset: [15, 15],
-    paths: [
-      [[-1.8,43.3],[-1.2,46],[-4.8,48.5],[-1.5,48.6],[1.5,51],[2.5,51],[3.5,50.3],[8,49],[7.5,47.5],[6.2,46.2],[7,44],[6,43.2],[3,43.3],[0,42.7],[-1.8,43.3]]
-    ]
-  },
-  {
-    id: "nigeria",
-    name: "NIGERIA",
-    year: "2027",
-    tier: 2,
-    system: "FPTP (House) + modified two-round (President)",
-    seats: 360,
-    problem: "The House of Representatives uses FPTP in 360 single-member constituencies. With three major parties and numerous smaller ones, vote-splitting is significant. Ethnic and regional voting patterns create structural inefficiencies.",
-    opportunity: "Nigeria's large, young, digitally connected population could support a swap platform, particularly in the south where multi-party competition is most intense. The challenge is trust infrastructure and election integrity – a swap platform would need to operate within a context of broader democratic concerns.",
-    next: "General elections scheduled January 2027.",
-    centroid: [8, 10],
-    labelOffset: [0, 15],
-    paths: [
-      [[3,6.5],[3,9],[4,12],[6,14],[9,13],[12,13.5],[14,13],[14,10],[13,7],[10,6],[7,4.5],[4,5],[2.7,6.3],[3,6.5]]
-    ]
-  },
-  {
-    id: "bangladesh",
-    name: "BANGLADESH",
-    year: "2031",
-    tier: 3,
-    system: "FPTP",
-    seats: 300,
-    problem: "300 FPTP seats with a historically two-party dominant system (BNP vs Awami League), though the Feb 2026 election (held after the ouster of Hasina) saw a more fragmented landscape. Vote-splitting in three-way contests is an emerging feature.",
-    opportunity: "The 2026 election just happened, so the next is ~2031. However, the evolving multi-party dynamics post-Hasina make this worth watching. Mobile penetration is high. The challenge is political volatility and trust.",
-    next: "~2031 (recently elected Feb 2026).",
-    centroid: [90, 24],
-    labelOffset: [15, 5],
-    paths: [
-      [[88.1,21.7],[88.5,22.5],[89,24],[89,25],[88.5,25.5],[89,26],[90,26.5],[92,25.5],[92,22],[91.5,21.5],[89.5,21.7],[88.1,21.7]]
-    ]
-  },
-  {
-    id: "ghana",
-    name: "GHANA",
-    year: "2028",
-    tier: 3,
-    system: "FPTP (Parliament)",
-    seats: 276,
-    problem: "Parliamentary seats are FPTP in single-member constituencies. The two dominant parties (NDC and NPP) alternate power, but in individual constituencies, third-party and independent candidates create spoiler dynamics.",
-    opportunity: "Smaller scale, strong democratic tradition. Ghana's elections are well-administered and digitally engaged. Could serve as a pilot for the concept in West Africa.",
-    next: "Parliamentary elections due 2028.",
-    centroid: [-1.5, 8],
-    labelOffset: [-30, -15],
-    paths: [
-      [[-3,5],[-3,7.5],[-2.5,11],[0,11.2],[1.2,11],[-0.1,5.5],[-1.5,5],[-3,5]]
-    ]
-  },
-  {
-    id: "kenya",
-    name: "KENYA",
-    year: "2027",
-    tier: 3,
-    system: "FPTP",
-    seats: 290,
-    problem: "290 FPTP constituency seats. Multi-ethnic coalition politics means candidates often win on thin pluralities. The system rewards regional ethnic blocks rather than national platforms.",
-    opportunity: "Active civil society, strong tech sector (M-Pesa etc.), and a young digitally native population. The challenge is that voting patterns are heavily ethnic/regional, which may limit cross-constituency swap appeal.",
-    next: "General elections due August 2027.",
-    centroid: [38, 0],
-    labelOffset: [15, -10],
-    paths: [
-      [[34,-1],[34,4.5],[36,5],[41,4],[41.5,2],[41,-2],[40,-4],[34,-1]]
-    ]
-  },
+const continents = [
+  { name: "North America", paths: [
+    [[-141,60],[-130,55],[-124,48.5],[-120,49],[-105,49],[-95,49],[-88,48],[-84,46.5],[-82,42],[-67,47.5],[-67,45],[-70,41.5],[-73,40],[-75,35],[-80,31],[-80,25],[-82,25],[-85,30],[-89,30],[-90,29],[-94,29.5],[-97,26],[-104,29.5],[-108,31.8],[-111,31.5],[-114,32.5],[-117,33],[-120,39],[-124,43],[-123,46],[-124,48.5],[-130,55],[-141,60],[-141,69],[-130,72],[-120,75],[-90,75],[-80,78],[-65,73],[-60,70],[-55,52],[-60,47],[-66,44],[-67,47.5]],
+    [[-97,26],[-96,19],[-92,15],[-87,14],[-83,10],[-80,8],[-77,9],[-83,10],[-87,14],[-92,15],[-96,19],[-97,26]],
+    [[-170,66],[-168,64],[-162,64],[-153,60],[-140,60],[-141,69],[-155,72],[-168,66],[-170,66]],
+  ]},
+  { name: "South America", paths: [
+    [[-80,8],[-77,9],[-73,11],[-62,10],[-52,4],[-50,0],[-50,-3],[-45,-6],[-35,-7],[-35,-10],[-37,-13],[-39,-15],[-40,-22],[-42,-23],[-44,-23],[-48,-28],[-52,-33],[-53,-34],[-57,-38],[-65,-42],[-65,-46],[-68,-50],[-68,-54],[-72,-52],[-75,-46],[-74,-40],[-71,-35],[-70,-27],[-70,-18],[-75,-15],[-77,-12],[-81,-6],[-80,-2],[-80,0],[-78,2],[-77,4],[-80,8]],
+  ]},
+  { name: "Europe", paths: [
+    [[-10,36],[-9,38],[-9,43],[-2,43],[0,42.7],[3,43.3],[6,43.2],[7,44],[13,45],[16,46],[18,42],[20,40],[22,41],[26,41],[29,41],[32,37],[36,37],[40,42],[44,42],[44,44],[40,47],[30,46],[30,48],[28,52],[22,55],[20,55],[18,58],[18,60],[10,58],[8,55],[5,52],[4,51],[2,51],[-1.5,48.6],[-5,48.5],[-6,50],[-5.7,56],[-3,58.5],[-7,58],[5,63],[15,69],[25,71],[32,72],[-10,72],[-10,36]],
+  ]},
+  { name: "Africa", paths: [
+    [[-17,15],[-16,12],[-15,11],[-8,5],[-5,5],[2,5],[2,6],[10,6],[10,4],[9,2],[9,1],[12,0],[12,-5],[15,-5],[18,-5],[20,-7],[25,-10],[30,-15],[33,-16],[35,-12],[40,-11],[42,-1],[44,2],[50,12],[43,12],[38,15],[35,20],[32,32],[25,32],[10,37],[-2,36],[-5,36],[-10,36],[-13,28],[-17,21],[-17,15]],
+  ]},
+  { name: "Asia", paths: [
+    [[40,37],[36,37],[32,37],[35,20],[38,15],[43,12],[44,2],[50,12],[55,25],[60,25],[62,27],[66,25],[68,23.5],[72,20],[74,12],[76,11],[77,8],[80,13],[82,16],[87,22],[93,20],[97,25],[100,22],[101,1],[104,1],[110,1],[115,4],[119,10],[120,19],[121,25],[127,35],[130,35],[132,34],[133,36],[139,35],[141,43],[145,44],[155,60],[180,65],[180,72],[70,73],[60,70],[50,67],[40,65],[30,70],[32,72]],
+  ]},
+  { name: "Australia", paths: [
+    [[115,-35],[115,-22],[130,-12],[137,-12],[141,-10],[145,-15],[152,-15],[154,-25],[153,-28],[151,-34],[140,-38],[131,-33],[120,-35],[115,-35]],
+  ]},
 ];
 
-const tierColors = {
-  1: "#ff77ff",  // FD pink – core opportunity
-  2: "#ffaaff",  // FD light pink – strong opportunity
-  3: "#4ad4ad",  // FD teal – emerging opportunity
-};
+const countries = [
+  { id: "uk", name: "UK", year: "2029", tier: 1, system: "FPTP", seats: 650,
+    problem: "Multi-party fragmentation produces extreme disproportionality. In 2024, Reform UK won 14% of the vote but just 1% of seats. The Greens won 7% but 0.6% of seats. Voters in safe seats – the vast majority – have no meaningful choice.",
+    opportunity: "Swap My Vote's home turf. The platform has operated across multiple UK general elections with a proven model. The fragmented five-to-six party landscape creates ideal conditions: voters trapped in safe seats for Party A can swap with voters in marginals who prefer Party A but face a different tactical imperative.",
+    next: "Due by August 2029.",
+    centroid: [-2, 54], labelOffset: [-40, -20],
+    paths: [[[-5.7,50],[-5,50.3],[-4.2,50.4],[-3.5,50.7],[-1.3,50.8],[1.4,51.2],[1.7,52.5],[0.3,52.9],[0,53.5],[-0.5,53.7],[-1.2,54.6],[-1.6,55],[-2,55.8],[-1.8,57.7],[-3,58.5],[-5,58.6],[-5.6,57.6],[-5.2,56.3],[-5.7,56],[-4.5,55.7],[-4.9,54.7],[-3.2,54],[-3.4,53.4],[-4.3,53.2],[-3.1,51.4],[-4.2,51.7],[-4.9,51.6],[-5.2,51.8],[-5.7,50]]] },
+  { id: "usa", name: "USA", year: "2026/28", tier: 1, system: "FPTP + Electoral College", seats: "435 + 538 EC",
+    problem: "House elections use FPTP in single-member districts. The presidential Electoral College's winner-take-all-by-state design means millions of votes in safe states are structurally irrelevant.",
+    opportunity: "Vote swapping between safe and swing states. Operated in 2000, 2016, 2020, and 2024 (with unofficial FD support). The 2024 cycle introduced a key innovation: n-for-1 swap ratios, where two or more safe-state voters swap with one swing-state voter – acknowledging the asymmetric value. This ratio model has potential application in other FPTP countries.",
+    next: "Midterms Nov 2026; Presidential Nov 2028.",
+    centroid: [-98, 40], labelOffset: [0, -15],
+    paths: [[[-124,48.5],[-123,46],[-124,43],[-120,39],[-117,33],[-114,32.5],[-111,31.5],[-108,31.8],[-104,29.5],[-97,26],[-94,29.5],[-90,29],[-89,30],[-85,30],[-82,25],[-80,25],[-80,31],[-75,35],[-73,40],[-70,41.5],[-67,45],[-67,47.5],[-82,42],[-84,46.5],[-88,48],[-90,48],[-95,49],[-105,49],[-120,49],[-124,48.5]]] },
+  { id: "india", name: "INDIA", year: "2029", tier: 1, system: "FPTP", seats: 543,
+    problem: "The world's largest FPTP exercise. Dozens of parties, 543 constituencies, vote-splitting endemic. Winning candidates routinely take seats with 30–35% of the vote.",
+    opportunity: "Immense scale. The n-for-1 ratio model could work well – safe-seat voters in party strongholds swapping with marginal-seat voters. State assembly elections in 2026–28 could serve as testing grounds.",
+    next: "Lok Sabha expected April/May 2029.",
+    centroid: [79, 22], labelOffset: [0, 0],
+    paths: [[[68,23.5],[68.5,26],[70,28],[72,32],[74,34.5],[76,34.5],[78,35.5],[80,33],[82,28],[84,28.5],[87,28],[88,26.5],[89,26.2],[92,26],[97,28],[97,25],[93,20],[87,22],[82,16],[80,13],[77,8],[76,11],[74,12],[72,20],[68,23.5]]] },
+  { id: "canada", name: "CANADA", year: "≤2029", tier: 1, system: "FPTP", seats: 343,
+    problem: "Three-to-four party system consistently distorted by FPTP. The NDP's nationally distributed support converts poorly. The Liberals won a majority in 2025 on ~39%.",
+    opportunity: "Natural home – progressive vote-splitting between Liberals, NDP, and Greens routinely hands seats to Conservatives. Strong digital infrastructure, active electoral reform movement, existing strategic voting culture.",
+    next: "Fixed date 15 Oct 2029; earlier possible.",
+    centroid: [-96, 60], labelOffset: [0, -10],
+    paths: [[[-141,60],[-141,69],[-130,72],[-120,75],[-90,75],[-80,78],[-65,73],[-60,70],[-55,52],[-60,47],[-66,44],[-67,47.5],[-82,42],[-84,46.5],[-88,48],[-95,49],[-120,49],[-124,48.5],[-130,55],[-141,60]]] },
+  { id: "france", name: "FRANCE", year: "≤2029", tier: 2, system: "Two-round", seats: 577,
+    problem: "Single-member constituencies with a two-round system. First round is effectively multi-party FPTP to qualify for the runoff. In 2024, massive tactical withdrawal was needed to block the RN.",
+    opportunity: "A swap platform could empower first-round coordination – formalising désistement républicain at voter level. High engagement and a strong tradition of tactical coordination make this fertile ground.",
+    next: "Due by 2029; earlier possible.",
+    centroid: [2.5, 46.5], labelOffset: [15, 15],
+    paths: [[[-1.8,43.3],[-1.2,46],[-4.8,48.5],[-1.5,48.6],[1.5,51],[2.5,51],[3.5,50.3],[8,49],[7.5,47.5],[6.2,46.2],[7,44],[6,43.2],[3,43.3],[0,42.7],[-1.8,43.3]]] },
+  { id: "nigeria", name: "NIGERIA", year: "2027", tier: 2, system: "FPTP (House)", seats: 360,
+    problem: "House uses FPTP in 360 constituencies. Three major parties, significant vote-splitting. Ethnic and regional patterns create structural inefficiencies.",
+    opportunity: "Large, young, digitally connected population. Could work in the south where multi-party competition is most intense. Challenge is trust infrastructure and election integrity.",
+    next: "General elections January 2027.",
+    centroid: [8, 10], labelOffset: [0, 15],
+    paths: [[[3,6.5],[3,9],[4,12],[6,14],[9,13],[12,13.5],[14,13],[14,10],[13,7],[10,6],[7,4.5],[4,5],[2.7,6.3],[3,6.5]]] },
+  { id: "bangladesh", name: "BANGLADESH", year: "~2031", tier: 3, system: "FPTP", seats: 300,
+    problem: "300 FPTP seats. Post-revolution multi-party landscape emerging. Vote-splitting in three-way contests is a new feature.",
+    opportunity: "Watch brief. Evolving multi-party dynamics may create new tactical voting needs. High mobile penetration.",
+    next: "~2031 (elected Feb 2026).",
+    centroid: [90, 24], labelOffset: [15, 5],
+    paths: [[[88.1,21.7],[88.5,22.5],[89,24],[89,25],[88.5,25.5],[89,26],[90,26.5],[92,25.5],[92,22],[91.5,21.5],[89.5,21.7],[88.1,21.7]]] },
+  { id: "ghana", name: "GHANA", year: "2028", tier: 3, system: "FPTP", seats: 276,
+    problem: "FPTP in single-member constituencies. Two dominant parties alternate power, but independents create spoiler dynamics.",
+    opportunity: "Smaller scale, strong democratic tradition. Could serve as a West Africa pilot.",
+    next: "Parliamentary elections due 2028.",
+    centroid: [-1.5, 8], labelOffset: [-30, -15],
+    paths: [[[-3,5],[-3,7.5],[-2.5,11],[0,11.2],[1.2,11],[-0.1,5.5],[-1.5,5],[-3,5]]] },
+  { id: "kenya", name: "KENYA", year: "2027", tier: 3, system: "FPTP", seats: 290,
+    problem: "290 FPTP seats. Multi-ethnic coalition politics, candidates win on thin pluralities.",
+    opportunity: "Active civil society, strong tech sector. Potential in urban multi-candidate seats.",
+    next: "General elections August 2027.",
+    centroid: [38, 0], labelOffset: [15, -10],
+    paths: [[[34,-1],[34,4.5],[36,5],[41,4],[41.5,2],[41,-2],[40,-4],[34,-1]]] },
+  { id: "hungary", name: "HUNGARY", year: "~2030", tier: 3, system: "Mixed (106 FPTP + 93 PR)", seats: 199,
+    problem: "106 single-member FPTP constituencies plus 93 proportional list seats. Under Orbán, opposition parties had to coordinate on single candidates per constituency – a manual process that failed in 2022 but succeeded informally in 2026 when most stood aside for Tisza.",
+    opportunity: "Magyar's Tisza just won a supermajority (April 2026), ending 16 years of Orbán. If the mixed system survives reform, the FPTP constituency component will remain a tactical coordination problem at the next election. Strong EU-aligned digital infrastructure. The democratic renewal moment creates goodwill for civic innovation.",
+    next: "~2030. Electoral reform possible under Tisza's constitutional supermajority.",
+    centroid: [19.5, 47.2], labelOffset: [20, 15],
+    paths: [[[16,46.8],[16.5,47.7],[17,48.1],[18.8,48.6],[20,48.4],[22,48.4],[22.3,48],[24.5,47.7],[22.5,46],[21,46],[20,46.2],[18,46],[16.5,46.5],[16,46.8]]] },
+  { id: "poland", name: "POLAND", year: "≤2027", tier: 2, system: "FPTP (Senate)", seats: "100 Senate", 
+    problem: "The Senate's 100 seats are pure FPTP in single-member constituencies. The Sejm uses PR, but the Senate is where legislation gets blocked or enabled. In 2023, opposition coordination on single Senate candidates flipped the chamber – a manual version of what SMV automates.",
+    opportunity: "Textbook swap territory for Senate races. Multi-party fragmentation across KO, Third Way, New Left, and Razem means progressive vote-splitting is a real risk. PiS's Nawrocki holds the presidency with veto power, making Senate control critical. Strong civic tech culture, high engagement, large politically active diaspora.",
+    next: "Parliamentary elections due by Nov 2027.",
+    centroid: [19.5, 52], labelOffset: [-35, -15],
+    paths: [[[14.1,51],[14.5,52.6],[14.8,54],[16.5,54.5],[18.5,55],[19.8,54.4],[23,54.4],[24,53.8],[24,51.8],[24,50.8],[23.5,50.5],[22,49],[19,49.5],[18.8,49.2],[16,50.5],[15,51],[14.1,51]]] },
+];
 
-const tierLabels = {
-  1: "Core opportunity",
-  2: "Strong opportunity",
-  3: "Emerging / future",
-};
+const tierColors = { 1: "#ff77ff", 2: "#ffaaff", 3: "#4ad4ad" };
+const tierLabels = { 1: "Core opportunity", 2: "Strong opportunity", 3: "Emerging / future" };
 
 const SMVGlobalMap = function SMVGlobalMap() {
   const [selected, setSelected] = useState(null);
   const [hoveredId, setHoveredId] = useState(null);
-  const mapWidth = 900;
-  const mapHeight = 560;
+  const mapW = 900, mapH = 500;
+  const toX = (lon) => GP.toX(lon, mapW);
+  const toY = (lat) => GP.toY(lat, mapH);
+  const pathToSvg = (coords) => coords.map(([lon, lat], i) => `${i === 0 ? "M" : "L"}${toX(lon).toFixed(1)},${toY(lat).toFixed(1)}`).join(" ") + " Z";
 
-  const toX = (lon) => GP.toX(lon, mapWidth);
-  const toY = (lat) => GP.toY(lat, mapHeight);
-
-  const pathToSvg = (coords) => {
-    return coords.map(([lon, lat], i) => {
-      const x = toX(lon);
-      const y = toY(lat);
-      return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
-    }).join(" ") + " Z";
-  };
-
-  // Simple graticule lines
   const graticules = [];
   for (let lat = -60; lat <= 80; lat += 30) {
-    const points = [];
-    for (let lon = -180; lon <= 180; lon += 5) {
-      points.push(`${toX(lon).toFixed(1)},${toY(lat).toFixed(1)}`);
-    }
-    graticules.push(points.join(" "));
-  }
-  const meridians = [];
-  for (let lon = -180; lon <= 180; lon += 60) {
-    const points = [];
-    for (let lat = -90; lat <= 90; lat += 2) {
-      points.push(`${toX(lon).toFixed(1)},${toY(lat).toFixed(1)}`);
-    }
-    meridians.push(points.join(" "));
+    const pts = [];
+    for (let lon = -180; lon <= 180; lon += 5) pts.push(`${toX(lon).toFixed(1)},${toY(lat).toFixed(1)}`);
+    graticules.push(pts.join(" "));
   }
 
-  const selectedCountry = countries.find(c => c.id === selected);
+  const sc = countries.find(c => c.id === selected);
+
+  const panel = sc ? (
+    <div className="detail-card" style={{ padding: "18px", background: "#141420", border: `1px solid ${tierColors[sc.tier]}33`, borderRadius: "8px", borderLeft: `3px solid ${tierColors[sc.tier]}` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
+        <div>
+          <h2 style={{ fontFamily: "'DM Sans',sans-serif", fontSize: "20px", fontWeight: 700, color: "#fff" }}>{sc.name}</h2>
+          <div style={{ fontFamily: "'Space Mono',monospace", fontSize: "11px", color: tierColors[sc.tier], marginTop: "2px" }}>{sc.system} · {sc.seats} seats · {sc.year}</div>
+        </div>
+        <button onClick={() => setSelected(null)} style={{ background: "none", border: "1px solid #333", color: "#888", padding: "2px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "11px" }}>✕</button>
+      </div>
+      {[["The Problem", sc.problem], ["SMV Opportunity", sc.opportunity], ["Timeline", sc.next]].map(([l, t]) => (
+        <div key={l} style={{ marginBottom: "10px" }}>
+          <h3 style={{ fontFamily: "'DM Sans',sans-serif", fontSize: "10px", fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "3px" }}>{l}</h3>
+          <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: "13px", lineHeight: 1.5, color: "#bbb", margin: 0 }}>{t}</p>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <div style={{ padding: "18px", fontFamily: "'DM Sans',sans-serif", fontSize: "13px", color: "#444" }}>
+      <p style={{ marginBottom: "12px" }}>Tap a country to see the tactical voting problem and SMV opportunity.</p>
+      <div style={{ fontSize: "11px", color: "#333", lineHeight: 1.6 }}>
+        {countries.map(c => (
+          <div key={c.id} style={{ cursor: "pointer", padding: "4px 0", borderBottom: "1px solid #1a1a2e" }} onClick={() => setSelected(c.id)}>
+            <span style={{ color: tierColors[c.tier], fontFamily: "'Space Mono',monospace", fontWeight: 700, marginRight: "8px" }}>{c.year}</span>
+            <span style={{ color: "#999" }}>{c.name}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
-    <div style={{
-      fontFamily: "'Space Mono', 'Courier New', monospace",
-      background: "#0a0a14",
-      color: "#e8e0d8",
-      minHeight: "100vh",
-      padding: "0",
-    }}>
+    <div style={{ fontFamily: "'Space Mono',monospace", background: "#0a0a14", color: "#e8e0d8", minHeight: "100vh" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;700&display=swap');
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        .country-path {
-          cursor: pointer;
-          transition: opacity 0.2s, filter 0.2s;
-        }
-        .country-path:hover {
-          filter: brightness(1.3);
-        }
-        .country-label {
-          pointer-events: none;
-          user-select: none;
-        }
-        .detail-card {
-          animation: fadeIn 0.3s ease;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .tier-dot {
-          display: inline-block;
-          width: 12px;
-          height: 12px;
-          border-radius: 50%;
-          margin-right: 8px;
-          vertical-align: middle;
-        }
+        *{box-sizing:border-box;margin:0;padding:0}
+        .country-path{cursor:pointer;transition:opacity .2s,filter .2s}
+        .country-path:hover{filter:brightness(1.3)}
+        .country-label{pointer-events:none;user-select:none}
+        .detail-card{animation:fadeIn .3s ease}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+        .tier-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
       `}</style>
 
-      {/* Header */}
-      <div style={{
-        padding: "32px 24px 20px",
-        borderBottom: "1px solid #222",
-      }}>
-        <div style={{
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: "11px",
-          letterSpacing: "3px",
-          textTransform: "uppercase",
-          color: "#ff77ff",
-          marginBottom: "8px",
-        }}>Swap My Vote</div>
-        <h1 style={{
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: "28px",
-          fontWeight: 700,
-          lineHeight: 1.2,
-          color: "#fff",
-          marginBottom: "6px",
-        }}>Global Opportunity Map</h1>
-        <p style={{
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: "14px",
-          color: "#888",
-          maxWidth: "600px",
-        }}>
-          Countries where electoral systems create tactical voting problems that a vote-swapping platform could help solve – through 2029.
-        </p>
+      <div style={{ padding: "24px 24px 14px", borderBottom: "1px solid #222" }}>
+        <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: "11px", letterSpacing: "3px", textTransform: "uppercase", color: "#ff77ff", marginBottom: "5px" }}>Swap My Vote</div>
+        <h1 style={{ fontFamily: "'DM Sans',sans-serif", fontSize: "24px", fontWeight: 700, color: "#fff", marginBottom: "4px" }}>Global Opportunity Map</h1>
+        <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: "13px", color: "#777", maxWidth: "550px" }}>Countries where electoral systems create tactical voting problems that vote-swapping could help solve – through 2029.</p>
       </div>
 
-      {/* Legend */}
-      <div style={{
-        display: "flex",
-        gap: "24px",
-        padding: "16px 24px",
-        flexWrap: "wrap",
-      }}>
-        {[1, 2, 3].map(tier => (
-          <div key={tier} style={{
-            display: "flex",
-            alignItems: "center",
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: "12px",
-            color: "#aaa",
-          }}>
-            <span className="tier-dot" style={{ background: tierColors[tier] }} />
-            {tierLabels[tier]}
+      <div style={{ display: "flex", gap: "16px", padding: "10px 24px 8px", flexWrap: "wrap" }}>
+        {[1,2,3].map(t => (
+          <div key={t} style={{ display: "flex", alignItems: "center", fontFamily: "'DM Sans',sans-serif", fontSize: "11px", color: "#aaa" }}>
+            <span className="tier-dot" style={{ background: tierColors[t] }} />{tierLabels[t]}
           </div>
         ))}
       </div>
 
-      {/* Map */}
-      <div style={{
-        padding: "0 24px",
-        overflowX: "auto",
-      }}>
-        <svg
-          viewBox={`0 0 ${mapWidth} ${mapHeight}`}
-          style={{
-            width: "100%",
-            maxWidth: "900px",
-            height: "auto",
-            display: "block",
-            margin: "0 auto",
-          }}
-        >
-          {/* Background */}
-          <rect x="0" y="0" width={mapWidth} height={mapHeight} fill="#0f0f1a" rx="4" />
-
-          {/* Graticule */}
-          {graticules.map((pts, i) => (
-            <polyline key={`grat-${i}`} points={pts} fill="none" stroke="#1a1a2e" strokeWidth="0.5" />
-          ))}
-          {meridians.map((pts, i) => (
-            <polyline key={`mer-${i}`} points={pts} fill="none" stroke="#1a1a2e" strokeWidth="0.5" />
-          ))}
-
-          {/* Equator */}
-          <line
-            x1={0} y1={toY(0)} x2={mapWidth} y2={toY(0)}
-            stroke="#252540" strokeWidth="0.8" strokeDasharray="4,4"
-          />
-
-          {/* Country shapes */}
-          {countries.map(country => (
-            <g key={country.id}>
-              {country.paths.map((path, pi) => (
-                <path
-                  key={pi}
-                  className="country-path"
-                  d={pathToSvg(path)}
-                  fill={tierColors[country.tier]}
-                  fillOpacity={selected === country.id ? 0.9 : hoveredId === country.id ? 0.7 : 0.5}
-                  stroke={selected === country.id ? "#fff" : tierColors[country.tier]}
-                  strokeWidth={selected === country.id ? 1.5 : 0.8}
-                  onClick={() => setSelected(selected === country.id ? null : country.id)}
-                  onMouseEnter={() => setHoveredId(country.id)}
-                  onMouseLeave={() => setHoveredId(null)}
-                />
-              ))}
-              {/* Label */}
-              <text
-                className="country-label"
-                x={toX(country.centroid[0]) + (country.labelOffset?.[0] || 0)}
-                y={toY(country.centroid[1]) + (country.labelOffset?.[1] || 0)}
-                fill="#fff"
-                fontSize="13"
-                fontWeight="700"
-                fontFamily="'DM Sans', sans-serif"
-                textAnchor="middle"
-                dominantBaseline="middle"
-              >
-                {country.name}
-              </text>
-              <text
-                className="country-label"
-                x={toX(country.centroid[0]) + (country.labelOffset?.[0] || 0)}
-                y={toY(country.centroid[1]) + (country.labelOffset?.[1] || 0) + 15}
-                fill={tierColors[country.tier]}
-                fontSize="11"
-                fontWeight="700"
-                fontFamily="'Space Mono', monospace"
-                textAnchor="middle"
-                dominantBaseline="middle"
-              >
-                {country.year}
-              </text>
-            </g>
-          ))}
-
-          {/* Gall-Peters label */}
-          <text x={mapWidth - 10} y={mapHeight - 8} fill="#333" fontSize="9" fontFamily="'Space Mono', monospace" textAnchor="end">
-            Gall-Peters equal-area projection
-          </text>
-        </svg>
+      {/* Map + side panel */}
+      <div style={{ display: "flex", padding: "0 24px 12px", gap: "16px", flexWrap: "wrap" }}>
+        <div style={{ flex: "1 1 520px", minWidth: "300px" }}>
+          <svg viewBox={`0 0 ${mapW} ${mapH}`} style={{ width: "100%", height: "auto", display: "block" }}>
+            <rect x="0" y="0" width={mapW} height={mapH} fill="#0f0f1a" rx="4" />
+            {graticules.map((pts, i) => <polyline key={i} points={pts} fill="none" stroke="#151525" strokeWidth="0.5" />)}
+            {continents.map(c => c.paths.map((p, i) => <path key={`${c.name}-${i}`} d={pathToSvg(p)} fill="#1a1a30" stroke="#2a2a48" strokeWidth="0.6" />))}
+            {countries.map(c => (
+              <g key={c.id}>
+                {c.paths.map((p, i) => (
+                  <path key={i} className="country-path" d={pathToSvg(p)}
+                    fill={tierColors[c.tier]} fillOpacity={selected === c.id ? 0.9 : hoveredId === c.id ? 0.7 : 0.55}
+                    stroke={selected === c.id ? "#fff" : tierColors[c.tier]} strokeWidth={selected === c.id ? 1.5 : 0.8}
+                    onClick={() => setSelected(selected === c.id ? null : c.id)}
+                    onMouseEnter={() => setHoveredId(c.id)} onMouseLeave={() => setHoveredId(null)} />
+                ))}
+                <text className="country-label" x={toX(c.centroid[0])+(c.labelOffset?.[0]||0)} y={toY(c.centroid[1])+(c.labelOffset?.[1]||0)}
+                  fill="#fff" fontSize="12" fontWeight="700" fontFamily="'DM Sans',sans-serif" textAnchor="middle" dominantBaseline="middle">{c.name}</text>
+                <text className="country-label" x={toX(c.centroid[0])+(c.labelOffset?.[0]||0)} y={toY(c.centroid[1])+(c.labelOffset?.[1]||0)+13}
+                  fill={tierColors[c.tier]} fontSize="10" fontWeight="700" fontFamily="'Space Mono',monospace" textAnchor="middle" dominantBaseline="middle">{c.year}</text>
+              </g>
+            ))}
+            <text x={mapW-8} y={mapH-6} fill="#1a1a2e" fontSize="8" fontFamily="'Space Mono',monospace" textAnchor="end">Gall-Peters equal-area projection</text>
+          </svg>
+        </div>
+        <div style={{ flex: "0 1 320px", minWidth: "260px" }}>{panel}</div>
       </div>
 
-      {/* Detail panel */}
-      {selectedCountry && (
-        <div className="detail-card" style={{
-          margin: "20px 24px",
-          padding: "24px",
-          background: "#141420",
-          border: `1px solid ${tierColors[selectedCountry.tier]}33`,
-          borderRadius: "8px",
-          borderLeft: `3px solid ${tierColors[selectedCountry.tier]}`,
-        }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
-            <div>
-              <h2 style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: "22px",
-                fontWeight: 700,
-                color: "#fff",
-              }}>{selectedCountry.name}</h2>
-              <div style={{
-                fontFamily: "'Space Mono', monospace",
-                fontSize: "12px",
-                color: tierColors[selectedCountry.tier],
-                marginTop: "4px",
-              }}>
-                {selectedCountry.system} · {selectedCountry.seats} seats · Next: {selectedCountry.year}
-              </div>
-            </div>
-            <button
-              onClick={() => setSelected(null)}
-              style={{
-                background: "none",
-                border: "1px solid #333",
-                color: "#888",
-                padding: "4px 12px",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: "12px",
-              }}
-            >Close</button>
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            <div>
-              <h3 style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: "12px",
-                fontWeight: 700,
-                color: "#888",
-                textTransform: "uppercase",
-                letterSpacing: "1.5px",
-                marginBottom: "6px",
-              }}>The Problem</h3>
-              <p style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: "14px",
-                lineHeight: 1.6,
-                color: "#ccc",
-              }}>{selectedCountry.problem}</p>
-            </div>
-            <div>
-              <h3 style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: "12px",
-                fontWeight: 700,
-                color: "#888",
-                textTransform: "uppercase",
-                letterSpacing: "1.5px",
-                marginBottom: "6px",
-              }}>SMV Opportunity</h3>
-              <p style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: "14px",
-                lineHeight: 1.6,
-                color: "#ccc",
-              }}>{selectedCountry.opportunity}</p>
-            </div>
-            <div>
-              <h3 style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: "12px",
-                fontWeight: 700,
-                color: "#888",
-                textTransform: "uppercase",
-                letterSpacing: "1.5px",
-                marginBottom: "6px",
-              }}>Timeline</h3>
-              <p style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: "14px",
-                lineHeight: 1.6,
-                color: "#ccc",
-              }}>{selectedCountry.next}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {!selectedCountry && (
-        <div style={{
-          padding: "16px 24px",
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: "13px",
-          color: "#555",
-          textAlign: "center",
-        }}>
-          Tap a country to see the tactical voting problem and SMV opportunity
-        </div>
-      )}
-
-      {/* Summary table */}
-      <div style={{
-        margin: "24px",
-        padding: "24px",
-        background: "#141420",
-        borderRadius: "8px",
-        border: "1px solid #1a1a2e",
-      }}>
-        <h2 style={{
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: "18px",
-          fontWeight: 700,
-          color: "#fff",
-          marginBottom: "16px",
-        }}>Election Timeline</h2>
+      {/* Table */}
+      <div style={{ margin: "4px 24px 20px", padding: "20px", background: "#141420", borderRadius: "8px", border: "1px solid #1a1a2e" }}>
+        <h2 style={{ fontFamily: "'DM Sans',sans-serif", fontSize: "17px", fontWeight: 700, color: "#fff", marginBottom: "14px" }}>Election Timeline</h2>
         <div style={{ overflowX: "auto" }}>
-          <table style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: "13px",
-          }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "'DM Sans',sans-serif", fontSize: "12px" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid #2a2a3e" }}>
-                {["Year", "Country", "System", "Seats", "Population", "Reg. Voters", ""].map(h => (
-                  <th key={h} style={{
-                    textAlign: "left",
-                    padding: "8px 12px",
-                    color: "#666",
-                    fontSize: "11px",
-                    textTransform: "uppercase",
-                    letterSpacing: "1px",
-                    fontWeight: 700,
-                    whiteSpace: "nowrap",
-                  }}>{h}</th>
+                {["Year","Country","System","Seats","Pop.","Voters",""].map(h => (
+                  <th key={h} style={{ textAlign: "left", padding: "6px 10px", color: "#555", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 700, whiteSpace: "nowrap" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {[
-                { year: "2026", name: "USA (Midterms)", system: "FPTP", seats: "435 House", pop: "340m", voters: "174m", tier: 1,
-                  situation: "Trump's second term faces midterm backlash amid tariff wars and democratic erosion concerns. Democrats need a net gain of 3 House seats.",
-                  useAbuse: "Safe-state / swing-state swaps for House races could unlock progressive votes in deep-red districts. Risk: partisan weaponisation – a swap tool could be framed as election interference in the current US climate."
-                },
-                { year: "2027", name: "Nigeria", system: "FPTP", seats: "360", pop: "230m", voters: "~93m", tier: 2,
-                  situation: "Tinubu's APC faces a united opposition bloc. Three-way presidential and House races across 360 FPTP constituencies with deep ethnic-regional fault lines.",
-                  useAbuse: "Could help coordinate opposition votes against APC in swing constituencies across the south-west. Risk: could entrench ethnic bloc voting patterns or be co-opted by party machines offering inducements to swap."
-                },
-                { year: "2027", name: "Kenya", system: "FPTP", seats: "290", pop: "56m", voters: "~22m", tier: 3,
-                  situation: "Post-Ruto political realignment following 2024–25 protests. Opposition fragmented but energised. Ethnicity remains the dominant predictor of constituency outcomes.",
-                  useAbuse: "Potential in multi-candidate urban constituencies where vote-splitting hands seats to dominant ethnic blocs. Risk: in a context of ethnic mobilisation, a swap tool could be perceived as undermining community solidarity."
-                },
-                { year: "2028", name: "USA (Presidential)", system: "FPTP + EC", seats: "538 EC", pop: "340m", voters: "~180m", tier: 1,
-                  situation: "Post-Trump succession contest. Winner-take-all Electoral College means millions of votes in safe states are structurally irrelevant to the outcome.",
-                  useAbuse: "The classic US vote-swap use case: a Green voter in California swaps with a Democrat in Pennsylvania. Operated in 2000 and 2016. Risk: legal grey area – some states have anti-vote-buying statutes that could be stretched to cover swaps."
-                },
-                { year: "2028", name: "Ghana", system: "FPTP", seats: "276", pop: "34m", voters: "~18m", tier: 3,
-                  situation: "NDC government under Mahama seeking re-election. Two-party dominance (NDC/NPP) but independents and smaller parties increasingly competitive in individual constituencies.",
-                  useAbuse: "Could help smaller parties and independents coordinate against dominant-party candidates in specific seats. Risk: relatively low – Ghana's strong democratic institutions and two-party system limit manipulation potential."
-                },
-                { year: "≤2029", name: "France", system: "Two-round", seats: "577", pop: "68m", voters: "~49m", tier: 2,
-                  situation: "Fragmented into four blocs: Macronists, left alliance (NFP), Rassemblement National, and centre-right. The 2024 snap elections saw massive tactical withdrawal to block the RN in second rounds.",
-                  useAbuse: "First-round coordination: voters swap to ensure the right candidates qualify for the runoff, formalising the désistement républicain at voter level. Risk: could be framed as anti-democratic manipulation of the two-round system's intended function."
-                },
-                { year: "2029", name: "India", system: "FPTP", seats: "543", pop: "1.44bn", voters: "~970m", tier: 1,
-                  situation: "Modi's NDA governs as a coalition after losing its outright majority in 2024. The INDIA opposition bloc demonstrated it can coordinate but faces fragmentation across states. Caste, religion, and regional identity shape voting patterns.",
-                  useAbuse: "Immense potential at scale – 543 FPTP seats, dozens of parties, endemic vote-splitting. State elections in 2026–28 offer pilot opportunities. Risk: in a context of rising communalism, a swap tool could be co-opted to consolidate majoritarian voting blocs, or face government hostility if seen as opposition infrastructure."
-                },
-                { year: "≤2029", name: "Canada", system: "FPTP", seats: "343", pop: "41m", voters: "~28m", tier: 1,
-                  situation: "Carney's Liberals have just secured a majority via by-election wins and floor-crossings. The Conservatives are rebuilding under a weakened Poilievre. NDP collapsed to 7 seats. Strong electoral reform movement.",
-                  useAbuse: "Natural home for SMV – three-to-four party system with progressive vote-splitting between Liberals, NDP, and Greens routinely handing seats to Conservatives. Risk: relatively low – Canada has a mature democratic culture and existing strategic voting infrastructure."
-                },
-                { year: "2029", name: "UK", system: "FPTP", seats: "650", pop: "68m", voters: "~48m", tier: 1,
-                  situation: "Labour's 2024 landslide on just 34% of the vote – the most disproportionate result in modern history. Reform UK polling strongly. Five-to-six party fragmentation across England, with different dynamics in Scotland and Wales.",
-                  useAbuse: "SMV's home turf with a proven track record. The fragmented landscape makes the case for swapping stronger than ever. Risk: Reform UK could use the same infrastructure to coordinate right-wing tactical voting, which would be a legitimate use of the tool but one that cuts against its founders' intentions."
-                },
-                { year: "~2031", name: "Bangladesh", system: "FPTP", seats: "300", pop: "175m", voters: "~127m", tier: 3,
-                  situation: "Post-revolution transition. BNP-led government elected Feb 2026 after Hasina's ouster. Awami League banned. New multi-party landscape emerging with student-led parties and Islamist groups.",
-                  useAbuse: "Evolving multi-party dynamics may create new tactical voting needs. High mobile penetration supports digital tools. Risk: political volatility, weak institutional trust, and the potential for a swap tool to be co-opted by party machines in a context where voter coercion is a real concern."
-                },
-              ].map((row, i) => (
+                { year:"2026", name:"USA (Midterms)", system:"FPTP", seats:"435", pop:"340m", voters:"174m", tier:1,
+                  sit:"Trump's second term faces midterm backlash amid tariff wars and democratic erosion concerns. Dems need net +3 House seats.",
+                  smv:"Safe/swing-district swaps. Courts have upheld vote swapping as protected speech – the question is whether that holds through the current Supreme Court era." },
+                { year:"2027", name:"Nigeria", system:"FPTP", seats:"360", pop:"230m", voters:"~93m", tier:2,
+                  sit:"Tinubu's APC faces united opposition. Three-way races across 360 FPTP constituencies with deep ethnic-regional fault lines.",
+                  smv:"Coordinate opposition votes in swing constituencies. Risk: entrench ethnic bloc voting or co-option by party machines." },
+                { year:"2027", name:"Kenya", system:"FPTP", seats:"290", pop:"56m", voters:"~22m", tier:3,
+                  sit:"Post-Ruto realignment after 2024–25 protests. Ethnicity remains the dominant predictor of constituency outcomes.",
+                  smv:"Potential in urban multi-candidate seats. Risk: perceived as undermining community solidarity." },
+                { year:"2028", name:"USA (Presidential)", system:"FPTP+EC", seats:"538 EC", pop:"340m", voters:"~180m", tier:1,
+                  sit:"Post-Trump succession. Winner-take-all EC means safe-state votes are structurally irrelevant.",
+                  smv:"Proven use case, operated 2000–2024. The n-for-1 ratio (pioneered 2024 with FD support) is the key innovation. Vote swapping has been upheld as free speech – the risk is whether that precedent survives a captive Supreme Court." },
+                { year:"2028", name:"Ghana", system:"FPTP", seats:"276", pop:"34m", voters:"~18m", tier:3,
+                  sit:"NDC under Mahama seeking re-election. Two-party dominance but independents increasingly competitive.",
+                  smv:"Could help smaller parties coordinate. Risk: low – strong democratic institutions." },
+                { year:"≤2027", name:"Poland (Senate)", system:"FPTP", seats:"100", pop:"38m", voters:"~30m", tier:2,
+                  sit:"Tusk's coalition governs but PiS's Nawrocki holds the presidency with veto power. Multi-party fragmentation on both left and right. Senate control is critical to legislative progress.",
+                  smv:"Textbook Senate swap territory – opposition coordination on single candidates flipped the Senate in 2023. SMV formalises what Polish civic groups already do manually. Risk: low – strong democratic culture, high engagement." },
+                { year:"≤2029", name:"France", system:"Two-round", seats:"577", pop:"68m", voters:"~49m", tier:2,
+                  sit:"Four-bloc fragmentation. 2024 saw massive tactical withdrawal to block RN in runoffs.",
+                  smv:"First-round coordination – formalising désistement républicain at voter level. Risk: framed as manipulation of two-round design." },
+                { year:"2029", name:"India", system:"FPTP", seats:"543", pop:"1.44bn", voters:"~970m", tier:1,
+                  sit:"Modi's NDA governs as coalition after losing majority in 2024. INDIA bloc can coordinate but faces state-level fragmentation.",
+                  smv:"Immense potential – 543 seats, endemic splitting. Risk: co-opted to consolidate majoritarian blocs, or face government hostility." },
+                { year:"≤2029", name:"Canada", system:"FPTP", seats:"343", pop:"41m", voters:"~28m", tier:1,
+                  sit:"Carney's Liberals have a majority. NDP collapsed to 7 seats. Strong electoral reform movement.",
+                  smv:"Natural home – progressive splitting routinely hands seats to Conservatives. Risk: low – mature democratic culture." },
+                { year:"2029", name:"UK", system:"FPTP", seats:"650", pop:"68m", voters:"~48m", tier:1,
+                  sit:"Labour's 2024 landslide on 34% – most disproportionate result in modern history. Reform polling strongly.",
+                  smv:"SMV's home turf. Risk: Reform could use the same infrastructure for right-wing tactical coordination." },
+                { year:"~2030", name:"Hungary", system:"Mixed (106 FPTP)", seats:"199", pop:"10m", voters:"~8m", tier:3,
+                  sit:"Tisza's Magyar ended 16 years of Orbán in April 2026 with a supermajority. Democratic renewal underway. Electoral reform possible but FPTP constituency component may survive.",
+                  smv:"If the mixed system persists, the 106 FPTP seats will again require opposition coordination. The 2026 election proved that single-candidate strategy works – SMV could automate it. Risk: system may be reformed before next election." },
+                { year:"~2031", name:"Bangladesh", system:"FPTP", seats:"300", pop:"175m", voters:"~127m", tier:3,
+                  sit:"Post-revolution. BNP government elected Feb 2026. Awami League banned. Multi-party landscape emerging.",
+                  smv:"Watch brief. Risk: political volatility, potential co-option by party machines." },
+              ].map((r, i) => (
                 <React.Fragment key={i}>
                   <tr style={{ borderBottom: "none" }}>
-                    <td style={{ padding: "10px 12px 2px", color: tierColors[row.tier], fontFamily: "'Space Mono', monospace", fontWeight: 700, verticalAlign: "top" }}>{row.year}</td>
-                    <td style={{ padding: "10px 12px 2px", color: "#ddd", fontWeight: 500, verticalAlign: "top" }}>{row.name}</td>
-                    <td style={{ padding: "10px 12px 2px", color: "#999", verticalAlign: "top" }}>{row.system}</td>
-                    <td style={{ padding: "10px 12px 2px", color: "#999", verticalAlign: "top", whiteSpace: "nowrap" }}>{row.seats}</td>
-                    <td style={{ padding: "10px 12px 2px", color: "#999", verticalAlign: "top", whiteSpace: "nowrap" }}>{row.pop}</td>
-                    <td style={{ padding: "10px 12px 2px", color: "#999", verticalAlign: "top", whiteSpace: "nowrap" }}>{row.voters}</td>
-                    <td style={{ padding: "10px 12px 2px", verticalAlign: "top" }}>
-                      <span className="tier-dot" style={{ background: tierColors[row.tier] }} />
-                    </td>
+                    <td style={{ padding: "8px 10px 1px", color: tierColors[r.tier], fontFamily: "'Space Mono',monospace", fontWeight: 700, verticalAlign: "top", fontSize: "11px" }}>{r.year}</td>
+                    <td style={{ padding: "8px 10px 1px", color: "#ddd", fontWeight: 500, verticalAlign: "top" }}>{r.name}</td>
+                    <td style={{ padding: "8px 10px 1px", color: "#888", verticalAlign: "top" }}>{r.system}</td>
+                    <td style={{ padding: "8px 10px 1px", color: "#888", verticalAlign: "top", whiteSpace: "nowrap" }}>{r.seats}</td>
+                    <td style={{ padding: "8px 10px 1px", color: "#888", verticalAlign: "top", whiteSpace: "nowrap" }}>{r.pop}</td>
+                    <td style={{ padding: "8px 10px 1px", color: "#888", verticalAlign: "top", whiteSpace: "nowrap" }}>{r.voters}</td>
+                    <td style={{ padding: "8px 10px 1px", verticalAlign: "top" }}><span className="tier-dot" style={{ background: tierColors[r.tier] }} /></td>
                   </tr>
                   <tr style={{ borderBottom: "1px solid #1a1a2e" }}>
-                    <td colSpan={7} style={{ padding: "2px 12px 14px" }}>
-                      <div style={{ fontSize: "12px", lineHeight: 1.5, color: "#777", maxWidth: "800px" }}>
-                        <span style={{ color: "#999" }}>{row.situation}</span>
-                      </div>
-                      <div style={{ fontSize: "12px", lineHeight: 1.5, color: "#666", maxWidth: "800px", marginTop: "4px" }}>
-                        <span style={{ color: tierColors[row.tier], fontWeight: 500, opacity: 0.7 }}>SMV:</span> {row.useAbuse}
+                    <td colSpan={7} style={{ padding: "1px 10px 10px" }}>
+                      <div style={{ fontSize: "11px", lineHeight: 1.45, color: "#888", maxWidth: "780px" }}>{r.sit}</div>
+                      <div style={{ fontSize: "11px", lineHeight: 1.45, color: "#666", maxWidth: "780px", marginTop: "2px" }}>
+                        <span style={{ color: tierColors[r.tier], fontWeight: 500, opacity: 0.7 }}>SMV:</span> {r.smv}
                       </div>
                     </td>
                   </tr>
@@ -625,49 +296,22 @@ const SMVGlobalMap = function SMVGlobalMap() {
         </div>
       </div>
 
-      {/* Methodology note */}
-      <div style={{
-        margin: "0 24px 32px",
-        padding: "20px",
-        background: "#141420",
-        borderRadius: "8px",
-        border: "1px solid #1a1a2e",
-        fontFamily: "'DM Sans', sans-serif",
-      }}>
-        <h2 style={{ fontSize: "18px", fontWeight: 700, color: "#fff", marginBottom: "12px" }}>
-          What makes a country suitable for SMV?
-        </h2>
-        <div style={{ fontSize: "14px", lineHeight: 1.7, color: "#aaa" }}>
-          <p style={{ marginBottom: "12px" }}>
-            Four conditions create the tactical voting problem that vote swapping can address:
-          </p>
-          <p style={{ marginBottom: "8px", color: "#ccc" }}>
-            <strong style={{ color: "#ff77ff" }}>1. Single-member constituencies</strong> – where one winner takes all and runner-up votes count for nothing. This is the core structural driver.
-          </p>
-          <p style={{ marginBottom: "8px", color: "#ccc" }}>
-            <strong style={{ color: "#ff77ff" }}>2. Multi-party competition</strong> – three or more viable parties splitting the vote, creating spoiler effects and wasted votes. Two-party systems have less need for swapping.
-          </p>
-          <p style={{ marginBottom: "8px", color: "#ccc" }}>
-            <strong style={{ color: "#ff77ff" }}>3. Safe seats and marginals</strong> – a geographic distribution of support that leaves most voters in constituencies where the outcome is predetermined. The swap unlocks value for voters on both sides.
-          </p>
-          <p style={{ marginBottom: "12px", color: "#ccc" }}>
-            <strong style={{ color: "#ff77ff" }}>4. Digital infrastructure</strong> – sufficient internet/mobile penetration and a culture of online political engagement to support the platform.
-          </p>
-          <p style={{ color: "#888", fontSize: "13px" }}>
-            Two-round systems (France) are included because the first round functions like a multi-candidate FPTP race – coordination on who qualifies for the runoff is the same class of problem. Systems with preferential/ranked voting (Australia, Ireland) are excluded because the ballot design already lets voters express both preference and strategy. PR systems are excluded entirely.
-          </p>
+      {/* Methodology */}
+      <div style={{ margin: "0 24px 20px", padding: "18px", background: "#141420", borderRadius: "8px", border: "1px solid #1a1a2e", fontFamily: "'DM Sans',sans-serif" }}>
+        <h2 style={{ fontSize: "17px", fontWeight: 700, color: "#fff", marginBottom: "8px" }}>What makes a country suitable for SMV?</h2>
+        <div style={{ fontSize: "13px", lineHeight: 1.6, color: "#aaa" }}>
+          <p style={{ marginBottom: "8px" }}>Four conditions create the tactical voting problem that vote swapping addresses:</p>
+          {[
+            ["1. Single-member constituencies", "one winner takes all, runner-up votes wasted."],
+            ["2. Multi-party competition", "three or more parties splitting the vote, creating spoiler effects."],
+            ["3. Safe seats and marginals", "predetermined outcomes in most constituencies. The n-for-1 ratio model (proven US 2024) compensates for asymmetric swing-seat value."],
+            ["4. Digital infrastructure", "internet/mobile penetration and online political engagement."],
+          ].map(([t, d]) => <p key={t} style={{ marginBottom: "4px", color: "#ccc" }}><strong style={{ color: "#ff77ff" }}>{t}</strong> – {d}</p>)}
+          <p style={{ color: "#666", fontSize: "11px", marginTop: "8px" }}>Two-round systems (France) included – first round is effectively multi-candidate FPTP. Preferential voting (Australia, Ireland) excluded – ballot design solves the problem. PR excluded entirely.</p>
         </div>
       </div>
 
-      {/* Footer */}
-      <div style={{
-        padding: "20px 24px",
-        borderTop: "1px solid #1a1a2e",
-        fontFamily: "'DM Sans', sans-serif",
-        fontSize: "11px",
-        color: "#444",
-        textAlign: "center",
-      }}>
+      <div style={{ padding: "14px 24px", borderTop: "1px solid #1a1a2e", fontFamily: "'DM Sans',sans-serif", fontSize: "10px", color: "#333", textAlign: "center" }}>
         Swap My Vote · Forward Democracy · Draft scoping document · April 2026
       </div>
     </div>
